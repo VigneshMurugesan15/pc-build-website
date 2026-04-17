@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './PCBuilder.css';
 
 const PCBuilder = () => {
   const [components, setComponents] = useState({
@@ -15,6 +16,8 @@ const PCBuilder = () => {
   const [selectedComponents, setSelectedComponents] = useState({});
   const [totalPrice, setTotalPrice] = useState(0);
   const [buildName, setBuildName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchComponents();
@@ -22,10 +25,15 @@ const PCBuilder = () => {
 
   const fetchComponents = async () => {
     try {
+      setLoading(true);
       const response = await axios.get('http://localhost:5000/api/components');
       setComponents(response.data);
+      setError(null);
     } catch (error) {
       console.error('Error fetching components:', error);
+      setError('Failed to load components. Make sure backend is running on port 5000');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -57,34 +65,45 @@ const PCBuilder = () => {
       setBuildName('');
     } catch (error) {
       console.error('Error saving build:', error);
+      alert('Failed to save build');
     }
   };
 
+  if (loading) {
+    return (
+      <div className="pc-builder-container" style={{ textAlign: 'center', color: 'white', marginTop: '100px' }}>
+        <h2>Loading components...</h2>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="pc-builder-container" style={{ textAlign: 'center', color: 'white', marginTop: '100px' }}>
+        <h2 style={{ color: '#ff6b6b' }}>❌ {error}</h2>
+        <button onClick={fetchComponents} style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer' }}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="pc-builder-container">
       <h1>🖥️ Custom PC Builder</h1>
       
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+      <div className="builder-content">
         {/* Components Selection */}
-        <div>
+        <div className="components-section">
           {Object.keys(components).map(category => (
-            <div key={category} style={{ marginBottom: '15px' }}>
-              <label style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
-                {category}
-              </label>
+            <div key={category} className="category-section">
+              <h3>{category}</h3>
               <select 
                 onChange={(e) => {
                   const selected = components[category]?.find(
                     c => c.id === parseInt(e.target.value)
                   );
                   if (selected) handleComponentSelect(category, selected);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  marginTop: '5px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px'
                 }}
               >
                 <option value="">Select a {category}</option>
@@ -99,56 +118,43 @@ const PCBuilder = () => {
         </div>
 
         {/* Build Summary */}
-        <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px' }}>
+        <div className="summary-section">
           <h2>Build Summary</h2>
-          <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '15px' }}>
+          <div className="selected-components">
             {Object.entries(selectedComponents).length === 0 ? (
-              <p style={{ color: '#999' }}>No components selected</p>
+              <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
+                👆 Select components to get started
+              </p>
             ) : (
               Object.entries(selectedComponents).map(([category, component]) => (
                 component && (
-                  <div key={category} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
-                    <span><strong>{category}:</strong></span>
-                    <span>${component.price}</span>
+                  <div key={category} className="selected-item">
+                    <span>{category}</span>
+                    <span>{component.name}</span>
+                    <span className="price">${component.price}</span>
                   </div>
                 )
               ))
             )}
           </div>
           
-          <div style={{ backgroundColor: '#f0f0f0', padding: '10px', borderRadius: '4px', marginBottom: '15px' }}>
-            <h3 style={{ margin: '0' }}>Total: ${totalPrice.toFixed(2)}</h3>
+          <div className="total-price">
+            <h3>💰 Total: ${totalPrice.toFixed(2)}</h3>
           </div>
 
           <input
             type="text"
-            placeholder="Enter build name"
+            placeholder="Give your build a name..."
             value={buildName}
             onChange={(e) => setBuildName(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              marginBottom: '10px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              boxSizing: 'border-box'
-            }}
+            className="build-name-input"
           />
           
           <button 
             onClick={saveBuild}
-            style={{
-              width: '100%',
-              padding: '10px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '16px'
-            }}
+            className="save-button"
           >
-            Save Build
+            💾 Save Build
           </button>
         </div>
       </div>
